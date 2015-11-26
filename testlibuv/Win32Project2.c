@@ -36,5 +36,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	config.bind_port = DEFAULT_BIND_PORT;
 	config.idle_timeout = DEFAULT_IDLE_TIMEOUT;
 
+	int err = server_run(&config, uv_default_loop());
+	if (err) {
+
+		exit(1);
+
+	}
+
 	return 0;
 }

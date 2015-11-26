@@ -109,7 +109,7 @@ void http_client_finish_init(server_ctx *sx, client_ctx *cx) {
   CHECK(0 == uv_timer_init(sx->loop, &incoming->timer_handle));
   
   parser = &cx->parser;
-  parser->status = ps_attr;
+  parser->status = ps_init;
   parser->curattr = cx->clientconn.t.buf;
   parser->curattrlen = 0;
   parser->next = cx->clientconn.t.buf;
@@ -180,17 +180,33 @@ static int do_req_parse(client_ctx *cx) {
 
 	data = (uint8_t *)incoming->t.buf;
 	size = (size_t)incoming->result;
-	err = http_parse(parser, &data, &size);
+	err = http_parse(parser, data, size);
 	if (err == http_ok) {
 		conn_read(incoming);
 		return s_req_parse;  /* Need more data. */
 	}
 
-	if (size != 0) {
+	if (err != http_exec_cmd) {
+
 		pr_err("junk in request %u", (unsigned)size);
 		return do_kill(cx);
 	}
 
+	if (0 == memcmp(parser->method, "GET", 3)) {
+
+		if (0 == memcmp(parser->uri, "/help", 5))
+			wsprintf(incoming->t.buf, "HTTP/1.1 200 OK\r\nGET ok\r\n\r\n");
+		else
+			wsprintf(incoming->t.buf, "HTTP/1.1 200 OK\r\nGET error !\r\n\r\n");
+	}
+	else {
+		wsprintf(incoming->t.buf, "HTTP/1.1 200 OK\r\nUnknown Method!\r\n\r\n");
+	}
+
+	conn_write(incoming, incoming->t.buf, strlen(incoming->t.buf));
+	return s_almost_dead_0;
+
+	return s_kill;
 }
 
 static int do_kill(client_ctx *cx) {
@@ -264,7 +280,7 @@ static void conn_timer_expire(uv_timer_t *handle, int status) {
 
 static void conn_read(conn *c) {
   ASSERT(c->rdstate == c_stop);
-  CHECK(0 == uv_read_start(&c->handle.stream, conn_alloc, conn_read_done));
+  CHECK(0 == uv_read_start(&c->handle.tcp, conn_alloc, conn_read_done));
   c->rdstate = c_busy;
   conn_timer_reset(c);
 }

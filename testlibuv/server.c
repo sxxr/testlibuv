@@ -189,52 +189,6 @@ static void on_connection(uv_stream_t *server, int status) {
   sx = CONTAINER_OF(server, server_ctx, tcp_handle);
   cx = xmalloc(sizeof(*cx));
   CHECK(0 == uv_tcp_init(sx->loop, &cx->clientconn.handle.tcp));
+  CHECK(0 == uv_accept(server, &cx->clientconn.handle.stream));
   http_client_finish_init(sx, cx);
-}
-
-int can_auth_none(const server_ctx *sx, const client_ctx *cx) {
-  return 1;
-}
-
-int can_auth_passwd(const server_ctx *sx, const client_ctx *cx) {
-  return 0;
-}
-
-int can_access(const server_ctx *sx,
-               const client_ctx *cx,
-               const struct sockaddr *addr) {
-  const struct sockaddr_in6 *addr6;
-  const struct sockaddr_in *addr4;
-  const uint32_t *p;
-  uint32_t a;
-  uint32_t b;
-  uint32_t c;
-  uint32_t d;
-
-  /* TODO(bnoordhuis) Implement proper access checks.  For now, just reject
-   * traffic to localhost.
-   */
-  if (addr->sa_family == AF_INET) {
-    addr4 = (const struct sockaddr_in *) addr;
-    d = ntohl(addr4->sin_addr.s_addr);
-    return (d >> 24) != 0x7F;
-  }
-
-  if (addr->sa_family == AF_INET6) {
-    addr6 = (const struct sockaddr_in6 *) addr;
-    p = (const uint32_t *) &addr6->sin6_addr.s6_addr;
-    a = ntohl(p[0]);
-    b = ntohl(p[1]);
-    c = ntohl(p[2]);
-    d = ntohl(p[3]);
-    if (a == 0 && b == 0 && c == 0 && d == 1) {
-      return 0;  /* "::1" style address. */
-    }
-    if (a == 0 && b == 0 && c == 0xFFFF && (d >> 24) == 0x7F) {
-      return 0;  /* "::ffff:127.x.x.x" style address. */
-    }
-    return 1;
-  }
-
-  return 0;
 }

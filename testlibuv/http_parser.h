@@ -9,6 +9,8 @@
   V(-1, bad_version, "Bad protocol version.")                                 \
   V(-2, bad_cmd, "Bad protocol command.")                                     \
   V(-3, bad_atyp, "Bad address type.")                                        \
+  V(-4, bad_method, "Bad http method.")                                        \
+  V(-5, bad_uri, "Bad http uri.")                                        \
   V(0, ok, "No error.")                                                       \
   V(1, exec_cmd, "Execute command.")											\
 
@@ -23,6 +25,9 @@ typedef enum {
 
 typedef enum {
 	ps_init,
+	ps_method,
+	ps_uri,
+	ps_version, 
 	ps_attr,
 	ps_value,
 }parse_status;
@@ -31,8 +36,15 @@ typedef enum {
 /* define for http header
 */
 typedef struct {
+	char *method;
+	int methodlen;
+
 	char *uri;
 	int urilen;
+
+	char *ver;
+	int verlen;
+
 
 	/* for parse*/
 	char *curattr;

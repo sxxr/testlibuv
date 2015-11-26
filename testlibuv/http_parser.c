@@ -15,14 +15,59 @@ int http_parse(http_ctx *parser, uint8_t *data, size_t size) {
 	int err = http_ok;
 
 	char *p = (char*)parser->next;
-	while (remain
+	while (remain > 0
 		&& err == http_ok) {
 
 		switch (status)
 		{
-		case ps_init: // 重新开始解析attr
+		case ps_init: // 开始解析method
 			parser->curattr = p;
 			parser->curattrlen = 0;
+
+			// http 协议由三部分组成: 请求行，消息包头，请求正文
+			// 请求行包括：method uri version
+			status = ps_method;
+			parser->method = p;
+			parser->methodlen = 0;
+			// break;
+		case ps_method:
+			if (p[0] == ' ') {
+
+				if (parser->methodlen == 0) {
+
+					err = http_bad_method;
+					break;
+				}
+
+				// 开始解析:请求行-uri
+				status = ps_uri;
+				parser->uri = p+1;
+				parser->urilen = 0;
+				break;
+			}
+
+			parser->methodlen++;
+			break;
+		case ps_uri:
+			if (p[0] == ' ') {
+
+				if (parser->urilen == 0) {
+
+					err = http_bad_uri;
+					break;
+				}
+
+				// 直接根据uri执行命令
+				// 开始解析:请求行-version
+				// status = ps_version;
+				err = http_exec_cmd;
+
+				parser->ver = p+1;
+				parser->verlen = 0;
+				break;
+			}
+
+			parser->urilen++;
 			break;
 		case ps_attr: // 解析attr
 			if (p[0] == '\r' || p[0] == '\n')
@@ -79,5 +124,7 @@ int http_parse(http_ctx *parser, uint8_t *data, size_t size) {
 	parser->status = status;
 	parser->next = p;
 	parser->remain = remain;
+
+	return err;
 }
 

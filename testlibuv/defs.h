@@ -81,7 +81,7 @@ typedef struct client_ctx {
 int server_run(const server_config *cf, uv_loop_t *loop);
 
 /* client.c */
-void client_finish_init(server_ctx *sx, client_ctx *cx);
+void http_client_finish_init(server_ctx *sx, client_ctx *cx);
 
 /* util.c */
 #if defined(__GNUC__)
