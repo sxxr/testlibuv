@@ -192,16 +192,18 @@ static int do_req_parse(client_ctx *cx) {
 		return do_kill(cx);
 	}
 
+	const char *content = 0;
 	if (0 == memcmp(parser->method, "GET", 3)) {
 
 		if (0 == memcmp(parser->uri, "/help", 5))
-			wsprintf(incoming->t.buf, "HTTP/1.1 200 OK\r\nGET ok\r\n\r\n");
+			content = "GET ok";
 		else
-			wsprintf(incoming->t.buf, "HTTP/1.1 200 OK\r\nGET error !\r\n\r\n");
+			content = "GET error !";
 	}
 	else {
-		wsprintf(incoming->t.buf, "HTTP/1.1 200 OK\r\nUnknown Method!\r\n\r\n");
+		content = "Unknown Method!";
 	}
+	wsprintfA(incoming->t.buf, "HTTP/1.1 200 OK\r\nContent-Length: %d \r\nConnection: close\r\n\r\n%s", strlen(content), content);
 
 	conn_write(incoming, incoming->t.buf, strlen(incoming->t.buf));
 	return s_almost_dead_0;
@@ -272,7 +274,7 @@ static void conn_timer_reset(conn *c) {
 static void conn_timer_expire(uv_timer_t *handle, int status) {
   conn *c;
 
-  CHECK(0 == status);
+  //CHECK(0 == status);
   c = CONTAINER_OF(handle, conn, timer_handle);
   c->result = UV_ETIMEDOUT;
   do_next(c->client);
